@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Live Note-Taking App</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .editor-pane {
+            background: #1e1e1e;
+            color: #e0e0e0;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+            border: none;
+            padding: 20px;
+            outline: none;
+        }
+        
+        .editor-pane::selection {
+            background: #667eea;
+            color: #ffffff;
+        }
+        
+        .preview-pane {
+            background: #ffffff;
+            overflow-y: auto;
+            padding: 30px;
+            font-size: 16px;
+            line-height: 1.8;
+        }
+        
+        .preview-pane h1 { 
+            font-size: 2.5em; 
+            font-weight: 800; 
+            margin-top: 30px; 
+            margin-bottom: 15px; 
+            color: #1a202c; 
+            border-bottom: 3px solid #667eea; 
+            padding-bottom: 10px; 
+        }
+        .preview-pane h2 { 
+            font-size: 2em; 
+            font-weight: 700; 
+            margin-top: 25px; 
+            margin-bottom: 12px; 
+            color: #2d3748; 
+        }
+        .preview-pane h3 { 
+            font-size: 1.5em; 
+            font-weight: 600; 
+            margin-top: 20px; 
+            margin-bottom: 10px; 
+            color: #4a5568; 
+        }
+        .preview-pane h4, .preview-pane h5, .preview-pane h6 { 
+            margin-top: 15px; 
+            margin-bottom: 8px; 
+            color: #718096; 
+        }
+        
+        .preview-pane p { 
+            margin-bottom: 15px; 
+            color: #2d3748; 
+        }
+        .preview-pane ul, .preview-pane ol { 
+            margin-left: 30px; 
+            margin-bottom: 15px; 
+            color: #2d3748; 
+        }
+        .preview-pane li { 
+            margin-bottom: 8px; 
+        }
+        
+        .preview-pane code {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9em;
+            color: #d73a49;
+        }
+        
+        .preview-pane pre {
+            background: #2d3748;
+            border-left: 4px solid #667eea;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-bottom: 15px;
+            font-size: 0.85em;
+        }
+        
+        .preview-pane pre code {
+            background: none;
+            border: none;
+            padding: 0;
+            color: inherit;
+        }
+        
+        .preview-pane blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+            margin-left: 0;
+            margin-bottom: 15px;
+            color: #4a5568;
+            font-style: italic;
+        }
+        
+        .preview-pane a {
+            color: #667eea;
+            text-decoration: none;
+            border-bottom: 1px solid #667eea;
+            transition: all 0.3s ease;
+        }
+        
+        .preview-pane a:hover {
+            color: #764ba2;
+            border-bottom-color: #764ba2;
+        }
+        
+        .preview-pane img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 15px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .preview-pane table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        
+        .preview-pane table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .preview-pane table td {
+            border: 1px solid #e2e8f0;
+            padding: 10px 12px;
+            color: #2d3748;
+        }
+        
+        .preview-pane table tr:nth-child(even) {
+            background: #f7fafc;
+        }
+        
+        .katex-block {
+            display: block;
+            margin: 15px 0;
+            overflow-x: auto;
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        
+        .katex-inline {
+            display: inline;
+        }
+        
+        .math {
+            color: #667eea;
+        }
+        
+        .toolbar-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+        }
+        
+        .toolbar-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .toolbar-btn:active {
+            transform: translateY(0px);
+        }
+        
+        .toolbar-btn i {
+            font-size: 14px;
+        }
+        
+        .sidebar-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            margin-bottom: 8px;
+            width: 100%;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+        }
+        
+        .sidebar-btn:hover {
+            background: #764ba2;
+            transform: translateX(4px);
+        }
+        
+        .sidebar-btn.active {
+            background: #764ba2;
+            border-left: 4px solid #fbbf24;
+        }
+        
+        .sidebar-btn i {
+            font-size: 15px;
+            min-width: 20px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-close {
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+            cursor: pointer;
+            transition: color 0.3s ease;
+            border: none;
+            background: none;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-close:hover {
+            color: #764ba2;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+        
+        .tips-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .tip-card {
+            background: #f7fafc;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .tip-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .tip-card h4 {
+            margin: 0 0 8px 0;
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .tip-card p {
+            margin: 0;
+            font-size: 13px;
+            color: #4a5568;
+        }
+        
+        .tip-card code {
+            background: white;
+            border: 1px solid #cbd5e0;
+            display: inline-block;
+            margin-top: 8px;
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+        
+        .char-count {
+            font-size: 12px;
+            color: #718096;
+            font-weight: 500;
+        }
+        
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #667eea;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 2000;
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .split-pane {
+            display: flex;
+            height: 100vh;
+        }
+        
+        .editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            border-right: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        .preview-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+        
+        .toolbar-separator {
+            width: 1px;
+            height: 24px;
+            background: rgba(255,255,255,0.2);
+            margin: 0 4px;
+        }
+        
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: #cbd5e0;
+            font-size: 13px;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .status-item i {
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="split-pane">
+        <!-- Sidebar -->
+        <div class="w-48 bg-gray-900 border-r border-gray-700 p-4 flex flex-col overflow-y-auto">
+            <h1 class="text-white text-xl font-bold mb-6 flex items-center gap-2">
+                <i class="fas fa-file-alt"></i> MarkTex
+            </h1>
+            
+            <div class="mb-6">
+                <h3 class="text-gray-400 text-sm font-semibold mb-3">TOOLS</h3>
+                <button class="sidebar-btn" onclick="showModal('tipsModal')">
+                    <i class="fas fa-book"></i> Markdown Tips
+                </button>
+                <button class="sidebar-btn" onclick="showModal('mathModal')">
+                    <i>&#931;</i> Math/LaTeX
+                </button>
+                <button class="sidebar-btn" onclick="showModal('htmlModal')">
+                    <i class="fas fa-code"></i> Custom HTML
+                </button>
+                <button class="sidebar-btn" onclick="showModal('cssModal')">
+                    <i class="fas fa-palette"></i> Custom CSS
+                </button>
+                <button class="sidebar-btn" onclick="downloadNote()">
+                    <i class="fas fa-download"></i> Download MD
+                </button>
+                <button class="sidebar-btn" onclick="exportHTML()">
+                    <i class="fas fa-file-export"></i> Export HTML
+                </button>
+                <button class="sidebar-btn" onclick="exportPDF()">
+                    <i class="fas fa-file-pdf"></i> Export PDF
+                </button>
+                <button class="sidebar-btn" onclick="clearAll()">
+                    <i class="fas fa-trash"></i> Clear All
+                </button>
+            </div>
+            
+            <div class="mb-6">
+                <h3 class="text-gray-400 text-sm font-semibold mb-3">QUICK SNIPPETS</h3>
+                <button class="sidebar-btn text-sm py-2" onclick="insertSnippet('# Heading 1\n## Heading 2\n### Heading 3')">
+                    <i class="fas fa-heading"></i> Headings
+                </button>
+                <button class="sidebar-btn text-sm py-2" onclick="insertSnippet('| Col1 | Col2 |\n|------|------|\n| A    | B    |')">
+                    <i class="fas fa-table"></i> Table
+                </button>
+                <button class="sidebar-btn text-sm py-2" onclick="insertSnippet('- Item 1\n- Item 2\n  - Sub item')">
+                    <i class="fas fa-list"></i> List
+                </button>
+                <button class="sidebar-btn text-sm py-2" onclick="insertSnippet('```\ncode here\n```')">
+                    <i class="fas fa-code"></i> Code Block
+                </button>
+            </div>
+            
+            <div class="text-gray-500 text-xs mt-auto space-y-2">
+                <p class="flex items-center gap-2">
+                    <i class="fas fa-file-lines"></i> <span id="charCount" class="char-count">0 characters</span>
+                </p>
+                <p class="flex items-center gap-2">
+                    <i class="fas fa-circle text-green-500" style="font-size: 8px;"></i> Live Preview Active
+                </p>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            <!-- Top Toolbar -->
+            <div class="bg-gray-800 border-b border-gray-700 p-2 flex gap-1 flex-wrap items-center overflow-x-auto">
+                <!-- Text Formatting -->
+                <button class="toolbar-btn" onclick="formatBold()" title="Bold">
+                    <i class="fas fa-bold"></i> Bold
+                </button>
+                <button class="toolbar-btn" onclick="formatItalic()" title="Italic">
+                    <i class="fas fa-italic"></i> Italic
+                </button>
+                <button class="toolbar-btn" onclick="formatStrike()" title="Strikethrough">
+                    <i class="fas fa-strikethrough"></i> Strike
+                </button>
+                
+                <div class="toolbar-separator"></div>
+                
+                <!-- Elements -->
+                <button class="toolbar-btn" onclick="insertHeading('#')" title="Heading 1">
+                    <i class="fas fa-heading"></i> H1
+                </button>
+                <button class="toolbar-btn" onclick="insertHeading('##')" title="Heading 2">
+                    <i class="fas fa-heading"></i> H2
+                </button>
+                <button class="toolbar-btn" onclick="insertLineStart('- ')" title="List Item">
+                    <i class="fas fa-list"></i> List
+                </button>
+                
+                <div class="toolbar-separator"></div>
+                
+                <!-- Code & Links -->
+                <button class="toolbar-btn" onclick="formatCode()" title="Inline Code">
+                    <i class="fas fa-code"></i> Code
+                </button>
+                <button class="toolbar-btn" onclick="insertLink()" title="Link">
+                    <i class="fas fa-link"></i> Link
+                </button>
+                <button class="toolbar-btn" onclick="insertImage()" title="Image">
+                    <i class="fas fa-image"></i> Image
+                </button>
+                
+                <div class="toolbar-separator"></div>
+                
+                <!-- Quotes & Math -->
+                <button class="toolbar-btn" onclick="insertLineStart('> ')" title="Blockquote">
+                    <i class="fas fa-quote-left"></i> Quote
+                </button>
+                <button class="toolbar-btn" onclick="formatMath()" title="Inline Math">
+                    <i class="fas fa-square-root-alt"></i> Math
+                </button>
+                <button class="toolbar-btn" onclick="insertDisplayMath()" title="Display Math">
+                    <i class="fas fa-infinity"></i> Formula
+                </button>
+                
+                <div class="flex-1"></div>
+                
+                <!-- Status -->
+                <div class="status-bar">
+                    <div class="status-item">
+                        <i class="fas fa-circle-check"></i>
+                        <span>Auto-saving</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Split View -->
+            <div class="flex-1 flex gap-0 overflow-hidden">
+                <!-- Editor -->
+                <div class="editor-container">
+                    <div style="padding: 10px 20px; background: #2d3748; color: #cbd5e0; font-size: 12px; border-bottom: 1px solid #1e1e1e; font-weight: 500;">
+                        <i class="fas fa-pen"></i> Editor
+                    </div>
+                    <textarea id="editor" class="editor-pane flex-1" placeholder="Enter your markdown here...
+
+Supports:
+• Markdown formatting
+• LaTeX math: $E=mc^2$ or $$\sum_{i=1}^n$$
+• Custom HTML/CSS
+• Live preview"></textarea>
+                </div>
+                
+                <!-- Preview -->
+                <div class="preview-container">
+                    <div style="padding: 10px 20px; background: #f8f9fa; color: #4a5568; font-size: 12px; border-bottom: 1px solid #e2e8f0; font-weight: 500; border-left: 1px solid #e2e8f0;">
+                        <i class="fas fa-eye"></i> Preview
+                    </div>
+                    <div id="preview" class="preview-pane flex-1"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Markdown Tips Modal -->
+    <div id="tipsModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('tipsModal')">
+                <i class="fas fa-times"></i>
+            </button>
+            <h2 style="color: #667eea; margin-bottom: 20px; margin-top: 0;">
+                <i class="fas fa-book"></i> Markdown Quick Reference
+            </h2>
+            
+            <p style="color: #4a5568; margin-bottom: 15px;">Click any example below to insert it into your editor:</p>
+            
+            <div class="tips-grid">
+                <div class="tip-card" onclick="insertMarkdownSnippet('headings')">
+                    <h4><i class="fas fa-heading"></i> Headings</h4>
+                    <code># H1<br>## H2<br>### H3</code>
+                </div>
+                <div class="tip-card" onclick="insertMarkdownSnippet('emphasis')">
+                    <h4><i class="fas fa-text-height"></i> Emphasis</h4>
+                    <code>**bold**<br>*italic*<br>~~strike~~</code>
+                </div>
+                <div class="tip-card" onclick="insertMarkdownSnippet('list')">
+                    <h4><i class="fas fa-list"></i> Lists</h4>
+                    <code>- Item 1<br>- Item 2<br>  - Nested</code>
+                </div>
+                <div class="tip-card" onclick="insertMarkdownSnippet('orderedlist')">
+                    <h4><i class="fas fa-list-ol"></i> Ordered Lists</h4>
+                    <code>1. First<br>2. Second<br>3. Third</code>
+                </div>
+                <div class="tip-card" onclick="insertMarkdownSnippet('code')">
+                    <h4><i class="fas fa-code"></i> Code</h4>
+                    <code>`inline`<br>```<br>block<br>```</code>
+                </div>
+                <div class="tip-card" onclick="insertMarkdownSnippet('links')">
+                    <h4><i class="fas fa-link"></i> Links & Images</h4>
+                    <code>[text](url)<br>![alt](url)</code>
+                </div>
+                <div class="tip-card" onclick="insertMarkdownSnippet('quote')">
+                    <h4><i class="fas fa-quote-left"></i> Blockquote</h4>
+                    <code>> Quote text<br>> More quote</code>
+                </div>
+                <div class="tip-card" onclick="insertMarkdownSnippet('hr')">
+                    <h4><i class="fas fa-minus"></i> Horizontal Line</h4>
+                    <code>---<br>or ***</code>
+                </div>
+                <div class="tip-card" onclick="insertMarkdownSnippet('table')">
+                    <h4><i class="fas fa-table"></i> Tables</h4>
+                    <code>| A | B |<br>|---|---|<br>| 1 | 2 |</code>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Math/LaTeX Modal -->
+    <div id="mathModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('mathModal')">
+                <i class="fas fa-times"></i>
+            </button>
+            <h2 style="color: #667eea; margin-bottom: 20px; margin-top: 0;">
+                <i class="fas fa-sigma"></i> LaTeX Math Formatting
+            </h2>
+            
+            <p style="color: #4a5568; margin-bottom: 15px;">Click any example below to insert it into your editor:</p>
+            
+            <div class="tips-grid">
+                <div class="tip-card" onclick="insertMathSnippet('$E=mc^2$')">
+                    <h4>Inline Math</h4>
+                    <code>$E=mc^2$</code>
+                </div>
+                <div class="tip-card" onclick="insertMathSnippet('$$\nx = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}\n$$')">
+                    <h4>Display Math</h4>
+                    <code>$$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$</code>
+                </div>
+                <div class="tip-card" onclick="insertMathSnippet('$\\frac{numerator}{denominator}$')">
+                    <h4>Fractions</h4>
+                    <code>\frac{num}{den}</code>
+                </div>
+                <div class="tip-card" onclick="insertMathSnippet('$\\sqrt{x}$')">
+                    <h4>Square Root</h4>
+                    <code>\sqrt{x}</code>
+                </div>
+                <div class="tip-card" onclick="insertMathSnippet('$x^{2}$')">
+                    <h4>Superscript</h4>
+                    <code>x^{2}</code>
+                </div>
+                <div class="tip-card" onclick="insertMathSnippet('$x_{i}$')">
+                    <h4>Subscript</h4>
+                    <code>x_{i}</code>
+                </div>
+                <div class="tip-card" onclick="insertMathSnippet('$\\alpha \\beta \\gamma \\pi$')">
+                    <h4>Greek Letters</h4>
+                    <code>\alpha \beta \gamma \pi</code>
+                </div>
+                <div class="tip-card" onclick="insertMathSnippet('$\\sum_{i=1}^{n}$')">
+                    <h4>Summation</h4>
+                    <code>\sum_{i=1}^{n}</code>
+                </div>
+                <div class="tip-card" onclick="insertMathSnippet('$\\int_{a}^{b}$')">
+                    <h4>Integral</h4>
+                    <code>\int_{a}^{b}</code>
+                </div>
+                <div class="tip-card" onclick="insertMathSnippet('$$\n\\begin{bmatrix}\na & b \\\\\\\\\nc & d\n\\end{bmatrix}\n$$')">
+                    <h4>Matrix</h4>
+                    <code>\begin{bmatrix} a & b \\ c & d \end{bmatrix}</code>
+                </div>
+                <div class="tip-card" onclick="insertMathSnippet('$\\lim_{x \\to \\infty}$')">
+                    <h4>Limit</h4>
+                    <code>\lim_{x \to \infty}</code>
+                </div>
+                <div class="tip-card" onclick="insertMathSnippet('$\\partial f / \\partial x$')">
+                    <h4>Partial Derivative</h4>
+                    <code>\partial f / \partial x</code>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Custom HTML Modal -->
+    <div id="htmlModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('htmlModal')">
+                <i class="fas fa-times"></i>
+            </button>
+            <h2 style="color: #667eea; margin-bottom: 20px; margin-top: 0;">
+                <i class="fas fa-code"></i> Custom HTML & CSS
+            </h2>
+            
+            <p style="color: #4a5568; margin-bottom: 15px;">You can include raw HTML and CSS in your markdown for custom styling and interactive elements.</p>
+            
+            <h3 style="color: #667eea; margin-top: 20px; margin-bottom: 10px;">Templates:</h3>
+            
+            <div class="form-group">
+                <label><i class="fas fa-paint-brush"></i> Gradient Box</label>
+                <textarea id="htmlExample1" style="background: #f7fafc; font-family: 'Monaco', monospace;"><div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px;">
+  <h3 style="margin: 0 0 10px 0;">Styled Box</h3>
+  <p style="margin: 0;">Custom HTML element</p>
+</div></textarea>
+                <button class="toolbar-btn" style="margin-top: 8px; width: 100%;" onclick="copyToEditor('htmlExample1')">
+                    <i class="fas fa-copy"></i> Insert
+                </button>
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-exclamation-triangle"></i> Alert Box</label>
+                <textarea id="htmlExample2" style="background: #f7fafc; font-family: 'Monaco', monospace;"><div style="background: #fef3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 6px; margin: 15px 0;">
+  <strong style="color: #856404;">Warning:</strong> This is an alert box.
+</div></textarea>
+                <button class="toolbar-btn" style="margin-top: 8px; width: 100%;" onclick="copyToEditor('htmlExample2')">
+                    <i class="fas fa-copy"></i> Insert
+                </button>
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-align-center"></i> Centered Content</label>
+                <textarea id="htmlExample3" style="background: #f7fafc; font-family: 'Monaco', monospace;"><div style="text-align: center; padding: 20px; background: #e0e7ff; border-radius: 10px;">
+  <h2 style="color: #667eea; margin: 0;">Title</h2>
+  <p style="color: #4a5568; margin-top: 10px;">Content</p>
+</div></textarea>
+                <button class="toolbar-btn" style="margin-top: 8px; width: 100%;" onclick="copyToEditor('htmlExample3')">
+                    <i class="fas fa-copy"></i> Insert
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Custom CSS Modal -->
+    <div id="cssModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('cssModal')">
+                <i class="fas fa-times"></i>
+            </button>
+            <h2 style="color: #667eea; margin-bottom: 20px; margin-top: 0;">
+                <i class="fas fa-palette"></i> Custom CSS Rules
+            </h2>
+            
+            <p style="color: #4a5568; margin-bottom: 15px;">Add custom CSS rules to style your markdown content:</p>
+            
+            <div class="form-group">
+                <label><i class="fas fa-pen-ruler"></i> Custom CSS</label>
+                <textarea id="customCSS" placeholder=".highlight {
+  background: yellow;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+p {
+  color: #333;
+  font-size: 16px;
+}
+
+h1 {
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+}" style="background: #f7fafc; font-family: 'Monaco', monospace; height: 180px;"></textarea>
+            </div>
+            
+            <button class="toolbar-btn" style="width: 100%; margin-bottom: 15px; justify-content: center;" onclick="applyCustomCSS()">
+                <i class="fas fa-check"></i> Apply Custom CSS
+            </button>
+            
+            <div class="form-group">
+                <label><i class="fas fa-lightbulb"></i> How to Use:</label>
+                <textarea readonly style="background: #f7fafc; height: 100px;"><div class="highlight">Text</div>
+
+<p style="color: red;">Inline styles</p>
+
+<style>.myclass { color: blue; }</style>
+<p class="myclass">Styled with class</p></textarea>
+            </div>
+            
+            <h3 style="color: #667eea; margin-top: 25px; margin-bottom: 15px;">CSS Properties:</h3>
+            
+            <div class="tips-grid">
+                <div class="tip-card">
+                    <h4>Text Shadow</h4>
+                    <code>text-shadow: 2px 2px 4px...</code>
+                </div>
+                <div class="tip-card">
+                    <h4>Box Shadow</h4>
+                    <code>box-shadow: 0 4px 12px...</code>
+                </div>
+                <div class="tip-card">
+                    <h4>Border Radius</h4>
+                    <code>border-radius: 8px;</code>
+                </div>
+                <div class="tip-card">
+                    <h4>Transitions</h4>
+                    <code>transition: all 0.3s ease;</code>
+                </div>
+                <div class="tip-card">
+                    <h4>Transforms</h4>
+                    <code>transform: scale(1.1);</code>
+                </div>
+                <div class="tip-card">
+                    <h4>Gradients</h4>
+                    <code>background: linear-gradient(...);</code>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const editor = document.getElementById('editor');
+        const preview = document.getElementById('preview');
+        const charCount = document.getElementById('charCount');
+        const customCSSInput = document.getElementById('customCSS');
+        let customCSSText = '';
+        
+        // Configure marked options
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            pedantic: false,
+            mangle: false
+        });
+        
+        // Event listeners
+        editor.addEventListener('input', () => {
+            updatePreview();
+            updateCharCount();
+            saveToLocalStorage();
+        });
+        
+        editor.addEventListener('keydown', (e) => {
+            // Tab support
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = editor.selectionStart;
+                const end = editor.selectionEnd;
+                const value = editor.value;
+                editor.value = value.substring(0, start) + '\t' + value.substring(end);
+                editor.selectionStart = editor.selectionEnd = start + 1;
+                updatePreview();
+                saveToLocalStorage();
+            }
+        });
+        
+        window.addEventListener('load', () => {
+            loadFromLocalStorage();
+            updatePreview();
+            updateCharCount();
+        });
+        
+        function updatePreview() {
+            const markdown = editor.value;
+            
+            // First, protect math expressions from markdown processing
+            const mathBlocks = [];
+            const mathInlines = [];
+            
+            // Extract display math blocks ($$...$$)
+            let processedMarkdown = markdown.replace(/\$\$([^\$]+?)\$\$/g, (match, content) => {
+                mathBlocks.push(content.trim());
+                return `MATHBLOCK${mathBlocks.length - 1}ENDMATHBLOCK`;
+            });
+            
+            // Extract inline math ($...$) but be careful not to match $$ remnants
+            processedMarkdown = processedMarkdown.replace(/\$([^\$\n]+?)\$/g, (match, content) => {
+                mathInlines.push(content.trim());
+                return `MATHINLINE${mathInlines.length - 1}ENDMATHINLINE`;
+            });
+            
+            // Parse markdown
+            let html = marked.parse(processedMarkdown);
+            
+            // Restore math expressions with proper KaTeX rendering
+            html = html.replace(/MATHBLOCK(\d+)ENDMATHBLOCK/g, (match, index) => {
+                try {
+                    const rendered = katex.renderToString(mathBlocks[index], { 
+                        displayMode: true,
+                        throwOnError: false,
+                        strict: false
+                    });
+                    return `<div class="katex-block">${rendered}</div>`;
+                } catch(e) {
+                    return `<div style="color: #dc2626; background: #fee2e2; padding: 10px; border-radius: 4px; border-left: 4px solid #dc2626; margin: 10px 0;"><strong>⚠ Math Error:</strong> ${e.message}<br><code style="background: #fef2f2; padding: 2px 4px; margin-top: 5px; display: block; color: #991b1b;">${mathBlocks[index]}</code></div>`;
+                }
+            });
+            
+            html = html.replace(/MATHINLINE(\d+)ENDMATHINLINE/g, (match, index) => {
+                try {
+                    const rendered = katex.renderToString(mathInlines[index], { 
+                        displayMode: false,
+                        throwOnError: false,
+                        strict: false
+                    });
+                    return `<span class="katex-inline math">${rendered}</span>`;
+                } catch(e) {
+                    return `<span style="color: #dc2626; background: #fee2e2; padding: 2px 6px; border-radius: 3px; font-size: 0.9em;" title="${e.message}">⚠ Math Error</span>`;
+                }
+            });
+            
+            // Apply custom CSS if any
+            if (customCSSText) {
+                html = `<style>${customCSSText}</style>` + html;
+            }
+            
+            preview.innerHTML = html;
+        }
+        
+        function updateCharCount() {
+            const count = editor.value.length;
+            charCount.textContent = count + ' character' + (count !== 1 ? 's' : '');
+        }
+        
+        function insertBefore(before, after) {
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            const text = editor.value;
+            const selectedText = text.substring(start, end) || 'text';
+            
+            editor.value = text.substring(0, start) + before + selectedText + after + text.substring(end);
+            editor.selectionStart = start + before.length;
+            editor.selectionEnd = start + before.length + selectedText.length;
+            
+            editor.focus();
+            updatePreview();
+            saveToLocalStorage();
+        }
+        
+        // Dedicated formatting functions
+        function formatBold() {
+            insertBefore('**', '**');
+        }
+        
+        function formatItalic() {
+            insertBefore('*', '*');
+        }
+        
+        function formatStrike() {
+            insertBefore('~~', '~~');
+        }
+        
+        function formatCode() {
+            insertBefore('`', '`');
+        }
+        
+        function formatMath() {
+            insertBefore('$', '$');
+        }
+        
+        function insertLink() {
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            const text = editor.value;
+            const selectedText = text.substring(start, end) || 'link text';
+            
+            const linkText = '[' + selectedText + '](url)';
+            editor.value = text.substring(0, start) + linkText + text.substring(end);
+            
+            // Select 'url' part for easy replacement
+            const urlStart = start + selectedText.length + 3;
+            editor.selectionStart = urlStart;
+            editor.selectionEnd = urlStart + 3;
+            
+            editor.focus();
+            updatePreview();
+            saveToLocalStorage();
+        }
+        
+        function insertImage() {
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            const text = editor.value;
+            const selectedText = text.substring(start, end) || 'alt text';
+            
+            const imageText = '![' + selectedText + '](url)';
+            editor.value = text.substring(0, start) + imageText + text.substring(end);
+            
+            // Select 'url' part for easy replacement
+            const urlStart = start + selectedText.length + 4;
+            editor.selectionStart = urlStart;
+            editor.selectionEnd = urlStart + 3;
+            
+            editor.focus();
+            updatePreview();
+            saveToLocalStorage();
+        }
+        
+        function insertHeading(level) {
+            const start = editor.selectionStart;
+            const text = editor.value;
+            
+            // Find the start of the current line
+            let lineStart = start;
+            while (lineStart > 0 && text[lineStart - 1] !== '\n') {
+                lineStart--;
+            }
+            
+            // Check if line already has heading markers
+            const lineEnd = text.indexOf('\n', lineStart);
+            const currentLine = text.substring(lineStart, lineEnd === -1 ? text.length : lineEnd);
+            const headingMatch = currentLine.match(/^(#{1,6})\s+/);
+            
+            if (headingMatch) {
+                // Replace existing heading level
+                editor.value = text.substring(0, lineStart) + level + ' ' + currentLine.substring(headingMatch[0].length) + text.substring(lineEnd === -1 ? text.length : lineEnd);
+            } else {
+                // Insert new heading
+                editor.value = text.substring(0, lineStart) + level + ' ' + currentLine + text.substring(lineEnd === -1 ? text.length : lineEnd);
+            }
+            
+            editor.selectionStart = editor.selectionEnd = lineStart + level.length + 1 + (currentLine.length - (headingMatch ? headingMatch[0].length : 0));
+            editor.focus();
+            updatePreview();
+            saveToLocalStorage();
+        }
+        
+        function insertLineStart(prefix) {
+            const start = editor.selectionStart;
+            const text = editor.value;
+            
+            // Find the start of the current line
+            let lineStart = start;
+            while (lineStart > 0 && text[lineStart - 1] !== '\n') {
+                lineStart--;
+            }
+            
+            // Check if prefix already exists
+            const lineText = text.substring(lineStart);
+            if (lineText.startsWith(prefix)) {
+                // Already has prefix, don't add again
+                editor.selectionStart = editor.selectionEnd = lineStart + prefix.length;
+            } else {
+                // Insert prefix at line start
+                editor.value = text.substring(0, lineStart) + prefix + text.substring(lineStart);
+                editor.selectionStart = editor.selectionEnd = lineStart + prefix.length;
+            }
+            
+            editor.focus();
+            updatePreview();
+            saveToLocalStorage();
+        }
+        
+        function insertDisplayMath() {
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            const text = editor.value;
+            const selectedText = text.substring(start, end) || 'x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}';
+            
+            // Check if we need newlines before/after
+            const needNewlineBefore = start > 0 && text[start - 1] !== '\n';
+            const needNewlineAfter = end < text.length && text[end] !== '\n';
+            
+            const before = (needNewlineBefore ? '\n' : '') + '$$\n';
+            const after = '\n$$' + (needNewlineAfter ? '\n' : '');
+            
+            editor.value = text.substring(0, start) + before + selectedText + after + text.substring(end);
+            editor.selectionStart = start + before.length;
+            editor.selectionEnd = start + before.length + selectedText.length;
+            
+            editor.focus();
+            updatePreview();
+            saveToLocalStorage();
+        }
+        
+        function insertSnippet(snippet) {
+            const start = editor.selectionStart;
+            const text = editor.value;
+            
+            editor.value = text.substring(0, start) + '\n' + snippet + '\n' + text.substring(start);
+            editor.selectionStart = start + snippet.length + 2;
+            
+            editor.focus();
+            updatePreview();
+            saveToLocalStorage();
+            
+            showNotification('Snippet inserted!');
+        }
+        
+        function insertMathSnippet(snippet) {
+            const start = editor.selectionStart;
+            const text = editor.value;
+            
+            editor.value = text.substring(0, start) + snippet + text.substring(start);
+            editor.selectionStart = editor.selectionEnd = start + snippet.length;
+            
+            editor.focus();
+            updatePreview();
+            saveToLocalStorage();
+            closeModal('mathModal');
+            
+            showNotification('Math snippet inserted!');
+        }
+        
+        function insertMarkdownSnippet(type) {
+            const snippets = {
+                'headings': '# Heading 1\n## Heading 2\n### Heading 3',
+                'emphasis': '**bold text**\n*italic text*\n~~strikethrough~~',
+                'list': '- Item 1\n- Item 2\n  - Nested item',
+                'orderedlist': '1. First item\n2. Second item\n3. Third item',
+                'code': 'Inline `code` example\n\n```javascript\nfunction hello() {\n  console.log("Hello!");\n}\n```',
+                'links': '[Link text](https://example.com)\n![Image alt text](image-url.jpg)',
+                'quote': '> Quote text here\n> More quote text',
+                'hr': '---',
+                'table': '| Column A | Column B |\n|----------|----------|\n| Data 1   | Data 2   |\n| Data 3   | Data 4   |'
+            };
+            
+            const snippet = snippets[type] || '';
+            const start = editor.selectionStart;
+            const text = editor.value;
+            
+            editor.value = text.substring(0, start) + '\n' + snippet + '\n' + text.substring(start);
+            editor.selectionStart = editor.selectionEnd = start + snippet.length + 2;
+            
+            editor.focus();
+            updatePreview();
+            saveToLocalStorage();
+            closeModal('tipsModal');
+            
+            showNotification('Markdown snippet inserted!');
+        }
+        
+        function copyToEditor(elementId) {
+            const content = document.getElementById(elementId).value;
+            const start = editor.selectionStart;
+            const text = editor.value;
+            
+            editor.value = text.substring(0, start) + '\n' + content + '\n' + text.substring(start);
+            
+            editor.focus();
+            updatePreview();
+            saveToLocalStorage();
+            closeModal('htmlModal');
+            
+            showNotification('HTML inserted!');
+        }
+        
+        function applyCustomCSS() {
+            customCSSText = customCSSInput.value;
+            saveCustomCSSToLocalStorage();
+            updatePreview();
+            showNotification('Custom CSS applied!');
+        }
+        
+        function downloadNote() {
+            const markdown = editor.value;
+            const element = document.createElement('a');
+            element.setAttribute('href', 'data:text/markdown;charset=utf-8,' + encodeURIComponent(markdown));
+            element.setAttribute('download', `note-${new Date().toISOString().slice(0, 10)}.md`);
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+            
+            showNotification('Downloaded as Markdown');
+        }
+        
+        function exportHTML() {
+            const markdown = editor.value;
+            
+            // Process math the same way as preview
+            const mathBlocks = [];
+            const mathInlines = [];
+            
+            let processedMarkdown = markdown.replace(/\$\$([^\$]+?)\$\$/g, (match, content) => {
+                mathBlocks.push(content.trim());
+                return `MATHBLOCK${mathBlocks.length - 1}ENDMATHBLOCK`;
+            });
+            
+            processedMarkdown = processedMarkdown.replace(/\$([^\$\n]+?)\$/g, (match, content) => {
+                mathInlines.push(content.trim());
+                return `MATHINLINE${mathInlines.length - 1}ENDMATHINLINE`;
+            });
+            
+            let html = marked.parse(processedMarkdown);
+            
+            html = html.replace(/MATHBLOCK(\d+)ENDMATHBLOCK/g, (match, index) => {
+                try {
+                    const rendered = katex.renderToString(mathBlocks[index], { 
+                        displayMode: true,
+                        throwOnError: false,
+                        strict: false
+                    });
+                    return `<div style="display: block; margin: 15px 0; overflow-x: auto;">${rendered}</div>`;
+                } catch(e) {
+                    return `<div style="color: red;">[Math Error: ${e.message}]</div>`;
+                }
+            });
+            
+            html = html.replace(/MATHINLINE(\d+)ENDMATHINLINE/g, (match, index) => {
+                try {
+                    const rendered = katex.renderToString(mathInlines[index], { 
+                        displayMode: false,
+                        throwOnError: false,
+                        strict: false
+                    });
+                    return `<span>${rendered}</span>`;
+                } catch(e) {
+                    return `<span style="color: red;">[Math Error]</span>`;
+                }
+            });
+            
+            let cssBlock = '';
+            if (customCSSText) {
+                cssBlock = `<style>${customCSSText}</style>`;
+            }
+            
+            const fullHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Note</title>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"><\/script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.8;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 30px;
+            background: #f5f5f5;
+            color: #2d3748;
+        }
+        h1 { font-size: 2.5em; font-weight: 800; margin-top: 30px; margin-bottom: 15px; border-bottom: 3px solid #667eea; padding-bottom: 10px; }
+        h2 { font-size: 2em; font-weight: 700; }
+        h3 { font-size: 1.5em; font-weight: 600; }
+        code {
+            background: #f7fafc;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+            margin-left: 0;
+        }
+        a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        table td {
+            border: 1px solid #e2e8f0;
+            padding: 10px 12px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+    <\/style>
+    ${cssBlock}
+</head>
+<body>
+${html}
+</body>
+</html>`;
+            
+            const element = document.createElement('a');
+            element.setAttribute('href', 'data:text/html;charset=utf-8,' + encodeURIComponent(fullHTML));
+            element.setAttribute('download', `note-${new Date().toISOString().slice(0, 10)}.html`);
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+            
+            showNotification('Exported as HTML');
+        }
+        
+        function exportPDF() {
+            const element = document.getElementById('preview');
+            const opt = {
+                margin: 10,
+                filename: `note-${new Date().toISOString().slice(0, 10)}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+            };
+            
+            html2pdf().set(opt).from(element).save();
+            showNotification('Exported as PDF');
+        }
+        
+        function clearAll() {
+            if (confirm('Clear all content? This cannot be undone.')) {
+                editor.value = '';
+                updatePreview();
+                updateCharCount();
+                localStorage.removeItem('noteContent');
+                showNotification('Content cleared');
+            }
+        }
+        
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+        
+        function showNotification(message) {
+            const notif = document.createElement('div');
+            notif.className = 'notification';
+            notif.innerHTML = '<i class="fas fa-check-circle"></i> ' + message;
+            document.body.appendChild(notif);
+            
+            setTimeout(() => {
+                notif.remove();
+            }, 2500);
+        }
+        
+        function saveToLocalStorage() {
+            localStorage.setItem('noteContent', editor.value);
+        }
+        
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('noteContent');
+            if (saved) {
+                editor.value = saved;
+            }
+            
+            const savedCSS = localStorage.getItem('customCSS');
+            if (savedCSS) {
+                customCSSText = savedCSS;
+                customCSSInput.value = savedCSS;
+            }
+        }
+        
+        function saveCustomCSSToLocalStorage() {
+            localStorage.setItem('customCSS', customCSSText);
+        }
+        
+        // Close modals on outside click
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('active');
+            }
+        });
+        
+        // Initialize with sample content on first load
+        if (!localStorage.getItem('noteContent')) {
+            editor.value = `# Welcome to MarkTex
+
+A powerful markdown note-taking application with live preview, LaTeX math support, and more!
+
+## Features
+
+- **Live Split-View** - See changes instantly
+- **LaTeX Math** - Write equations inline $E=mc^2$ or as displays
+- **Custom HTML/CSS** - Add custom styling
+- **Multi-Format Export** - Save as Markdown, HTML, or PDF
+- **Auto-Save** - Never lose your work
+
+## Math Examples
+
+Inline math: $\\frac{1}{2}$ and $x^2 + y^2 = z^2$
+
+Display math:
+
+$$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
+
+Quadratic formula:
+
+$$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$
+
+Matrix notation:
+
+$$\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix}$$
+
+## Code Example
+
+\`\`\`javascript
+console.log('Welcome to MarkTex');
+const math = (a, b) => a + b;
+\`\`\`
+
+## Quick Tips
+
+Use the **toolbar buttons** above to format text quickly!
+
+> This is a blockquote - use it for emphasis or citations
+
+---
+
+**Start typing to begin editing!**`;
+            updatePreview();
+            updateCharCount();
+        }
+    </script>
+</body>
+</html>
