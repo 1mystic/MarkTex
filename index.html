@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown Live Note-Taking App</title>
+    <title>MarkTex - Markdown Editor with LaTeX Support</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="alternate icon" href="favicon.ico">
+    <meta name="description" content="A modern markdown editor with live preview and LaTeX math support">
+    <meta name="keywords" content="markdown, latex, editor, math, katex, notes">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
@@ -11,6 +15,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -418,6 +423,28 @@
             height: 100vh;
         }
         
+        .resizer {
+            width: 5px;
+            background: #e2e8f0;
+            cursor: col-resize;
+            position: relative;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        
+        .resizer:hover {
+            background: #667eea;
+        }
+        
+        .resizer::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -2px;
+            right: -2px;
+            bottom: 0;
+        }
+        
         .editor-container {
             flex: 1;
             display: flex;
@@ -457,6 +484,175 @@
         .status-item i {
             font-size: 14px;
         }
+       
+        /* Annotation Mode Styles */
+        .annotation-mode {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            z-index: 3000;
+            flex-direction: column;
+        }
+        
+        .annotation-mode.active {
+            display: flex;
+        }
+        
+        .annotation-toolbar {
+            background: #2d3748;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 2px solid #667eea;
+            flex-wrap: wrap;
+        }
+        
+        .annotation-toolbar h3 {
+            color: white;
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .annotation-btn {
+            /*background: #4baf54;*/
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .annotation-btn:hover {
+            background: #764ba2;
+            transform: translateY(-1px);
+        }
+        
+        .annotation-btn.active {
+            background: #764ba2;
+            box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.3);
+        }
+        
+        .shapes-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .shapes-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: #1a202c;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            padding: 8px;
+            margin-top: 4px;
+            min-width: 150px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .shapes-menu.active {
+            display: block;
+        }
+        
+        .shape-option {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+        
+        .shape-option:hover {
+            background: #667eea;
+        }
+        
+        .shape-option.active {
+            background: #764ba2;
+        }
+        
+        .pen-size-input {
+            width: 80px;
+            padding: 6px 10px;
+            border-radius: 4px;
+            border: 2px solid #4a5568;
+            background: #1a202c;
+            color: white;
+        }
+        
+        .color-picker {
+            width: 50px;
+            height: 35px;
+            border-radius: 6px;
+            border: 2px solid #4a5568;
+            cursor: pointer;
+            background: transparent;
+        }
+        
+        .annotation-canvas-container {
+            position: relative;
+            flex: 1;
+            overflow: hidden;
+            background: #f5f5f5;
+        }
+        
+        .annotation-content-wrapper {
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            position: relative;
+            background: #f5f5f5;
+        }
+        
+        .annotation-content {
+            background: #ffffff;
+            padding: 30px;
+            font-size: 16px;
+            line-height: 1.8;
+            max-width: 100%;
+            width: auto;
+            margin: 0;
+            position: relative;
+            overflow: visible;
+        }
+        
+        .annotation-content img {
+            display: block;
+            width: auto;
+            height: auto;
+            max-width: none;
+            user-select: none;
+            pointer-events: none;
+        }
+        
+        .annotation-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: crosshair;
+            pointer-events: auto;
+            z-index: 10;
+        }
     </style>
 </head>
 <body>
@@ -489,6 +685,9 @@
                 </button>
                 <button class="sidebar-btn" onclick="exportPDF()">
                     <i class="fas fa-file-pdf"></i> Export PDF
+                </button>
+                <button class="sidebar-btn annotation-btn" onclick="openAnnotationMode()">
+                    <i class="fas fa-pen"></i> Annotate
                 </button>
                 <button class="sidebar-btn" onclick="clearAll()">
                     <i class="fas fa-trash"></i> Clear All
@@ -587,9 +786,9 @@
             </div>
             
             <!-- Split View -->
-            <div class="flex-1 flex gap-0 overflow-hidden">
+            <div class="flex-1 flex gap-0 overflow-hidden" id="splitView">
                 <!-- Editor -->
-                <div class="editor-container">
+                <div class="editor-container" id="editorPanel">
                     <div style="padding: 10px 20px; background: #2d3748; color: #cbd5e0; font-size: 12px; border-bottom: 1px solid #1e1e1e; font-weight: 500;">
                         <i class="fas fa-pen"></i> Editor
                     </div>
@@ -602,8 +801,11 @@ Supports:
 • Live preview"></textarea>
                 </div>
                 
+                <!-- Resizer -->
+                <div class="resizer" id="resizer"></div>
+                
                 <!-- Preview -->
-                <div class="preview-container">
+                <div class="preview-container" id="previewPanel">
                     <div style="padding: 10px 20px; background: #f8f9fa; color: #4a5568; font-size: 12px; border-bottom: 1px solid #e2e8f0; font-weight: 500; border-left: 1px solid #e2e8f0;">
                         <i class="fas fa-eye"></i> Preview
                     </div>
@@ -854,6 +1056,72 @@ h1 {
         </div>
     </div>
     
+    <!-- Annotation Mode -->
+    <div id="annotationMode" class="annotation-mode">
+        <div class="annotation-toolbar">
+            <h3><i class="fas fa-pen-fancy"></i> Annotation Mode</h3>
+            
+            <button class="annotation-btn" id="penTool" onclick="setAnnotationTool('pen')" title="Pen Tool">
+                <i class="fas fa-pen"></i> Pen
+            </button>
+            
+            <div class="shapes-dropdown">
+                <button class="annotation-btn" id="shapeTool" onclick="toggleShapesMenu()" title="Shapes">
+                    <i class="fas fa-shapes"></i> Shapes ▾
+                </button>
+                <div class="shapes-menu" id="shapesMenu">
+                    <button class="shape-option" onclick="selectShape('rectangle')">
+                        <i class="fas fa-square"></i> Rectangle
+                    </button>
+                    <button class="shape-option" onclick="selectShape('circle')">
+                        <i class="fas fa-circle"></i> Circle
+                    </button>
+                    <button class="shape-option" onclick="selectShape('arrow')">
+                        <i class="fas fa-arrow-right"></i> Arrow
+                    </button>
+                </div>
+            </div>
+            
+            <button class="annotation-btn" id="eraserTool" onclick="setAnnotationTool('eraser')" title="Eraser">
+                <i class="fas fa-eraser"></i> Eraser
+            </button>
+            
+            <div style="display: flex; align-items: center; gap: 8px; color: white;">
+                <label style="font-size: 13px;">Color:</label>
+                <input type="color" id="penColor" class="color-picker" value="#667eea" onchange="updatePenColor()">
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 8px; color: white;">
+                <label style="font-size: 13px;">Size:</label>
+                <input type="range" id="penSize" class="pen-size-input" min="1" max="20" value="3" 
+                       oninput="updatePenSize()" style="width: 100px;">
+                <span id="penSizeDisplay" style="font-size: 13px; min-width: 30px;">3px</span>
+            </div>
+            
+            <button class="annotation-btn" onclick="clearAnnotations()" title="Clear All Annotations">
+                <i class="fas fa-trash"></i> Clear
+            </button>
+            
+            <button class="annotation-btn" onclick="downloadAnnotatedImage()" title="Save as PDF" style="background: #16a34a;">
+                <i class="fas fa-file-pdf"></i> Save PDF
+            </button>
+            
+            <div style="flex: 1;"></div>
+            
+            <button class="annotation-btn" onclick="closeAnnotationMode()" title="Exit (Press ESC)" 
+                    style="background: #dc2626;">
+                <i class="fas fa-times"></i> Exit (ESC)
+            </button>
+        </div>
+        
+        <div class="annotation-canvas-container" id="annotationContainer">
+            <div class="annotation-content-wrapper" id="annotationWrapper">
+                <canvas id="annotationCanvas" class="annotation-canvas"></canvas>
+                <div class="annotation-content" id="annotationContent"></div>
+            </div>
+        </div>
+    </div>
+    
     <script>
         const editor = document.getElementById('editor');
         const preview = document.getElementById('preview');
@@ -894,6 +1162,7 @@ h1 {
             loadFromLocalStorage();
             updatePreview();
             updateCharCount();
+            initializeResizer();
         });
         
         function updatePreview() {
@@ -1341,17 +1610,63 @@ ${html}
         }
         
         function exportPDF() {
-            const element = document.getElementById('preview');
-            const opt = {
-                margin: 10,
-                filename: `note-${new Date().toISOString().slice(0, 10)}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
-            };
+            showNotification('Opening print dialog...');
             
-            html2pdf().set(opt).from(element).save();
-            showNotification('Exported as PDF');
+            const printWindow = window.open('', '_blank');
+            
+            if (!printWindow) {
+                showNotification('Please allow pop-ups to export PDF.');
+                return;
+            }
+            
+            const element = document.getElementById('preview');
+            
+            const printHTML = '<!DOCTYPE html>' +
+'<html>' +
+'<head>' +
+'    <title>Document - ' + new Date().toISOString().slice(0, 10) + '</title>' +
+'    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">' +
+'    <style>' +
+'        @media print {' +
+'            @page { margin: 20mm; size: A4; }' +
+'            body { margin: 0; padding: 0; }' +
+'        }' +
+'        body {' +
+'            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;' +
+'            line-height: 1.8;' +
+'            color: #2d3748;' +
+'            background: white;' +
+'            margin: 0;' +
+'            padding: 20px;' +
+'        }' +
+'        h1 { font-size: 2.5em; font-weight: 800; margin-top: 30px; margin-bottom: 15px; border-bottom: 3px solid #667eea; padding-bottom: 10px; }' +
+'        h2 { font-size: 2em; font-weight: 700; }' +
+'        h3 { font-size: 1.5em; font-weight: 600; }' +
+'        code { background: #f7fafc; padding: 2px 6px; border-radius: 4px; font-family: monospace; }' +
+'        pre { background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 6px; overflow-x: auto; }' +
+'        pre code { background: none; padding: 0; }' +
+'        blockquote { border-left: 4px solid #667eea; padding-left: 15px; margin-left: 0; color: #4a5568; }' +
+'        a { color: #667eea; text-decoration: none; }' +
+'        table { border-collapse: collapse; width: 100%; margin-bottom: 15px; }' +
+'        table th { background: #667eea; color: white; padding: 12px; text-align: left; }' +
+'        table td { border: 1px solid #e2e8f0; padding: 10px 12px; }' +
+'        img { max-width: 100%; height: auto; border-radius: 8px; }' +
+'    </style>' +
+'</head>' +
+'<body>' +
+    element.innerHTML +
+'    <\/script>' +
+'</body>' +
+'</html>';
+            
+            printWindow.document.write(printHTML);
+            printWindow.document.close();
+            
+            setTimeout(() => {
+                printWindow.print();
+            }, 500);
+            
+            showNotification('Print dialog opened! Save as PDF.');
         }
         
         function clearAll() {
@@ -1404,10 +1719,577 @@ ${html}
             localStorage.setItem('customCSS', customCSSText);
         }
         
+        // Resizable panes functionality
+        function initializeResizer() {
+            const resizer = document.getElementById('resizer');
+            const editorPanel = document.getElementById('editorPanel');
+            const previewPanel = document.getElementById('previewPanel');
+            const splitView = document.getElementById('splitView');
+            
+            let isResizing = false;
+            let startX = 0;
+            let startWidthEditor = 0;
+            
+            resizer.addEventListener('mousedown', (e) => {
+                isResizing = true;
+                startX = e.clientX;
+                startWidthEditor = editorPanel.offsetWidth;
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+                e.preventDefault();
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                
+                const deltaX = e.clientX - startX;
+                const newWidthEditor = startWidthEditor + deltaX;
+                const totalWidth = splitView.offsetWidth;
+                const minWidth = 300;
+                
+                if (newWidthEditor >= minWidth && (totalWidth - newWidthEditor - 5) >= minWidth) {
+                    const percentage = (newWidthEditor / totalWidth) * 100;
+                    editorPanel.style.flex = `0 0 ${percentage}%`;
+                    previewPanel.style.flex = `1 1 auto`;
+                }
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (isResizing) {
+                    isResizing = false;
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                }
+            });
+        }
+        
         // Close modals on outside click
         window.addEventListener('click', (e) => {
             if (e.target.classList.contains('modal')) {
                 e.target.classList.remove('active');
+            }
+        });
+        
+        // Annotation Mode Variables
+        let annotationCanvas = null;
+        let annotationCtx = null;
+        let isDrawing = false;
+        let currentTool = 'pen';
+        let currentShape = 'rectangle';
+        let penColor = '#667eea';
+        let penSize = 3;
+        let lastX = 0;
+        let lastY = 0;
+        let startX = 0;
+        let startY = 0;
+        let scrollOffsetX = 0;
+        let scrollOffsetY = 0;
+        let savedImageData = null;
+        let pdfDataUrl = null; // Store PDF data URL
+        
+        function openAnnotationMode() {
+            const annotationMode = document.getElementById('annotationMode');
+            const annotationContent = document.getElementById('annotationContent');
+            const annotationWrapper = document.getElementById('annotationWrapper');
+            annotationCanvas = document.getElementById('annotationCanvas');
+            annotationCtx = annotationCanvas.getContext('2d');
+            
+            // Show annotation mode first
+            annotationMode.classList.add('active');
+            
+            // Show loading message
+            annotationContent.innerHTML = '<div style="padding: 40px; text-align: center; color: #667eea;"><i class="fas fa-spinner fa-spin" style="font-size: 48px; margin-bottom: 20px;"></i><h3>Preparing annotation view...</h3><p>Please wait...</p></div>';
+            
+            showNotification('Preparing annotation view...');
+            
+            // Simply copy the preview HTML content
+            setTimeout(() => {
+                annotationContent.innerHTML = preview.innerHTML;
+                
+                // Apply preview styling to annotation content
+                annotationContent.style.background = '#ffffff';
+                annotationContent.style.padding = '30px';
+                annotationContent.style.fontSize = '16px';
+                annotationContent.style.lineHeight = '1.8';
+                annotationContent.style.maxWidth = '100%';
+                annotationContent.style.width = 'auto';
+                annotationContent.style.margin = '0';
+                
+                // Wait for content to render
+                setTimeout(() => {
+                    setupAnnotationCanvas();
+                    setAnnotationTool('pen');
+                    
+                    // Track scroll position
+                    annotationWrapper.removeEventListener('scroll', updateScrollOffset);
+                    annotationWrapper.addEventListener('scroll', updateScrollOffset);
+                    
+                    showNotification('Annotation mode ready! Draw on the document. Press ESC to exit.');
+                }, 100);
+            }, 100);
+        }
+        
+        function updateScrollOffset() {
+            const wrapper = document.getElementById('annotationWrapper');
+            scrollOffsetX = wrapper.scrollLeft;
+            scrollOffsetY = wrapper.scrollTop;
+        }
+        
+        function setupAnnotationCanvas() {
+            const wrapper = document.getElementById('annotationWrapper');
+            const content = document.getElementById('annotationContent');
+            
+            // Force a reflow to ensure content dimensions are accurate
+            content.offsetHeight;
+            
+            // Wait a bit more for any dynamic content to settle
+            setTimeout(() => {
+                // Get the content's bounding rectangle relative to the wrapper
+                const contentRect = content.getBoundingClientRect();
+                const wrapperRect = wrapper.getBoundingClientRect();
+                
+                // Calculate content dimensions
+                const contentWidth = content.offsetWidth;
+                const contentHeight = content.offsetHeight;
+                
+                // Calculate content position relative to wrapper
+                const contentLeft = contentRect.left - wrapperRect.left + wrapper.scrollLeft;
+                const contentTop = contentRect.top - wrapperRect.top + wrapper.scrollTop;
+                
+                console.log('Content position:', contentLeft, contentTop);
+                console.log('Content size:', contentWidth, contentHeight);
+                
+                // Set canvas size to match content exactly
+                annotationCanvas.width = contentWidth;
+                annotationCanvas.height = contentHeight;
+                
+                // Position canvas to match content
+                annotationCanvas.style.width = contentWidth + 'px';
+                annotationCanvas.style.height = contentHeight + 'px';
+                annotationCanvas.style.left = contentLeft + 'px';
+                annotationCanvas.style.top = contentTop + 'px';
+                
+                // Configure context for smooth drawing
+                annotationCtx.lineCap = 'round';
+                annotationCtx.lineJoin = 'round';
+                
+                // Setup drawing events (remove old listeners first to avoid duplicates)
+                annotationCanvas.removeEventListener('mousedown', startDrawing);
+                annotationCanvas.removeEventListener('mousemove', draw);
+                annotationCanvas.removeEventListener('mouseup', stopDrawing);
+                annotationCanvas.removeEventListener('mouseleave', stopDrawing);
+                annotationCanvas.removeEventListener('touchstart', handleTouchStart);
+                annotationCanvas.removeEventListener('touchmove', handleTouchMove);
+                annotationCanvas.removeEventListener('touchend', stopDrawing);
+                
+                annotationCanvas.addEventListener('mousedown', startDrawing);
+                annotationCanvas.addEventListener('mousemove', draw);
+                annotationCanvas.addEventListener('mouseup', stopDrawing);
+                annotationCanvas.addEventListener('mouseleave', stopDrawing);
+                
+                // Touch support
+                annotationCanvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+                annotationCanvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+                annotationCanvas.addEventListener('touchend', stopDrawing);
+            }, 100);
+        }
+        
+        function setAnnotationTool(tool) {
+            currentTool = tool;
+            
+            // Update button states - first remove all active states
+            document.querySelectorAll('.annotation-toolbar button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            if (tool === 'pen') {
+                document.querySelector('button[onclick*="setAnnotationTool(\'pen\')"]').classList.add('active');
+                annotationCanvas.style.cursor = 'crosshair';
+            } else if (tool === 'rectangle' || tool === 'circle' || tool === 'arrow') {
+                document.querySelector('button[onclick*="toggleShapesMenu"]').classList.add('active');
+                annotationCanvas.style.cursor = 'crosshair';
+            } else if (tool === 'eraser') {
+                document.querySelector('button[onclick*="setAnnotationTool(\'eraser\')"]').classList.add('active');
+                annotationCanvas.style.cursor = 'grab';
+            }
+        }
+
+        function toggleShapesMenu() {
+            const menu = document.getElementById('shapesMenu');
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function selectShape(shape) {
+            currentShape = shape;
+            setAnnotationTool(shape);
+            toggleShapesMenu();
+            
+            // Update shapes button icon
+            const shapesBtn = document.querySelector('button[onclick*="toggleShapesMenu"]');
+            let icon = '⬜';
+            if (shape === 'circle') icon = '⭕';
+            else if (shape === 'arrow') icon = '↗';
+            shapesBtn.innerHTML = `<span style="font-size: 1.2rem;">${icon}</span>`;
+        }
+
+        // Close shapes menu when clicking outside
+        document.addEventListener('click', function(e) {
+            const menu = document.getElementById('shapesMenu');
+            const shapesBtn = document.querySelector('button[onclick*="toggleShapesMenu"]');
+            if (menu && shapesBtn && !menu.contains(e.target) && !shapesBtn.contains(e.target)) {
+                menu.style.display = 'none';
+            }
+        });
+        
+        function updatePenColor() {
+            penColor = document.getElementById('penColor').value;
+        }
+        
+        function updatePenSize() {
+            penSize = document.getElementById('penSize').value;
+            document.getElementById('penSizeDisplay').textContent = penSize + 'px';
+        }
+        
+        function startDrawing(e) {
+            const rect = annotationCanvas.getBoundingClientRect();
+            
+            // Calculate coordinates relative to the canvas itself
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
+            lastX = startX;
+            lastY = startY;
+            
+            isDrawing = true;
+            
+            // For shape tools, save the current canvas state
+            if (currentTool === 'rectangle' || currentTool === 'circle' || currentTool === 'arrow') {
+                savedImageData = annotationCtx.getImageData(0, 0, annotationCanvas.width, annotationCanvas.height);
+            }
+            
+            // For pen, start a path
+            if (currentTool === 'pen') {
+                annotationCtx.beginPath();
+                annotationCtx.moveTo(lastX, lastY);
+            }
+        }
+        
+        function draw(e) {
+            if (!isDrawing) return;
+            
+            e.preventDefault();
+            
+            const rect = annotationCanvas.getBoundingClientRect();
+            
+            // Calculate coordinates relative to the canvas itself
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            if (currentTool === 'pen') {
+                // Free-hand drawing
+                annotationCtx.globalCompositeOperation = 'source-over';
+                annotationCtx.strokeStyle = penColor;
+                annotationCtx.lineWidth = penSize;
+                annotationCtx.globalAlpha = 1;
+                
+                annotationCtx.lineTo(x, y);
+                annotationCtx.stroke();
+            } else if (currentTool === 'eraser') {
+                // Eraser
+                annotationCtx.globalCompositeOperation = 'destination-out';
+                annotationCtx.lineWidth = penSize * 2;
+                annotationCtx.globalAlpha = 1;
+                
+                annotationCtx.beginPath();
+                annotationCtx.moveTo(lastX, lastY);
+                annotationCtx.lineTo(x, y);
+                annotationCtx.stroke();
+            } else if (currentTool === 'rectangle' || currentTool === 'circle' || currentTool === 'arrow') {
+                // Shape tools - restore saved state and draw preview
+                annotationCtx.putImageData(savedImageData, 0, 0);
+                
+                annotationCtx.strokeStyle = penColor;
+                annotationCtx.fillStyle = penColor;
+                annotationCtx.lineWidth = penSize;
+                annotationCtx.globalAlpha = 0.5;
+                annotationCtx.globalCompositeOperation = 'source-over';
+                
+                if (currentTool === 'rectangle') {
+                    annotationCtx.strokeRect(startX, startY, x - startX, y - startY);
+                } else if (currentTool === 'circle') {
+                    const radius = Math.sqrt(Math.pow(x - startX, 2) + Math.pow(y - startY, 2));
+                    annotationCtx.beginPath();
+                    annotationCtx.arc(startX, startY, radius, 0, 2 * Math.PI);
+                    annotationCtx.stroke();
+                } else if (currentTool === 'arrow') {
+                    drawArrow(annotationCtx, startX, startY, x, y);
+                }
+            }
+            
+            lastX = x;
+            lastY = y;
+        }
+        
+        function drawArrow(ctx, x1, y1, x2, y2) {
+            const headLength = penSize * 4;
+            const angle = Math.atan2(y2 - y1, x2 - x1);
+            
+            // Draw line
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            
+            // Draw arrowhead
+            ctx.beginPath();
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - headLength * Math.cos(angle - Math.PI / 6), y2 - headLength * Math.sin(angle - Math.PI / 6));
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - headLength * Math.cos(angle + Math.PI / 6), y2 - headLength * Math.sin(angle + Math.PI / 6));
+            ctx.stroke();
+        }
+        
+        function stopDrawing() {
+            if (!isDrawing) return;
+            
+            const x = lastX;
+            const y = lastY;
+            
+            // For shape tools, draw final shape with full opacity
+            if (currentTool === 'rectangle' || currentTool === 'circle' || currentTool === 'arrow') {
+                // Restore saved state first
+                annotationCtx.putImageData(savedImageData, 0, 0);
+                
+                // Draw final shape
+                annotationCtx.strokeStyle = penColor;
+                annotationCtx.fillStyle = penColor;
+                annotationCtx.lineWidth = penSize;
+                annotationCtx.globalAlpha = 1;
+                annotationCtx.globalCompositeOperation = 'source-over';
+                
+                if (currentTool === 'rectangle') {
+                    annotationCtx.strokeRect(startX, startY, x - startX, y - startY);
+                } else if (currentTool === 'circle') {
+                    const radius = Math.sqrt(Math.pow(x - startX, 2) + Math.pow(y - startY, 2));
+                    annotationCtx.beginPath();
+                    annotationCtx.arc(startX, startY, radius, 0, 2 * Math.PI);
+                    annotationCtx.stroke();
+                } else if (currentTool === 'arrow') {
+                    drawArrow(annotationCtx, startX, startY, x, y);
+                }
+                
+                savedImageData = null;
+            }
+            
+            isDrawing = false;
+            annotationCtx.globalCompositeOperation = 'source-over';
+            annotationCtx.globalAlpha = 1;
+        }
+        
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = annotationCanvas.getBoundingClientRect();
+            
+            // Calculate coordinates relative to the canvas itself
+            startX = touch.clientX - rect.left;
+            startY = touch.clientY - rect.top;
+            lastX = startX;
+            lastY = startY;
+            
+            isDrawing = true;
+            
+            // For shape tools, save the current canvas state
+            if (currentTool === 'rectangle' || currentTool === 'circle' || currentTool === 'arrow') {
+                savedImageData = annotationCtx.getImageData(0, 0, annotationCanvas.width, annotationCanvas.height);
+            }
+            
+            // For pen, start a path
+            if (currentTool === 'pen') {
+                annotationCtx.beginPath();
+                annotationCtx.moveTo(lastX, lastY);
+            }
+        }
+        
+        function handleTouchMove(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            
+            const touch = e.touches[0];
+            const rect = annotationCanvas.getBoundingClientRect();
+            
+            // Calculate coordinates relative to the canvas itself
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            
+            if (currentTool === 'pen') {
+                annotationCtx.globalCompositeOperation = 'source-over';
+                annotationCtx.strokeStyle = penColor;
+                annotationCtx.lineWidth = penSize;
+                annotationCtx.globalAlpha = 1;
+                
+                annotationCtx.lineTo(x, y);
+                annotationCtx.stroke();
+            } else if (currentTool === 'eraser') {
+                annotationCtx.globalCompositeOperation = 'destination-out';
+                annotationCtx.lineWidth = penSize * 2;
+                annotationCtx.globalAlpha = 1;
+                
+                annotationCtx.beginPath();
+                annotationCtx.moveTo(lastX, lastY);
+                annotationCtx.lineTo(x, y);
+                annotationCtx.stroke();
+            } else if (currentTool === 'rectangle' || currentTool === 'circle' || currentTool === 'arrow') {
+                // Shape tools - restore saved state and draw preview
+                annotationCtx.putImageData(savedImageData, 0, 0);
+                
+                annotationCtx.strokeStyle = penColor;
+                annotationCtx.fillStyle = penColor;
+                annotationCtx.lineWidth = penSize;
+                annotationCtx.globalAlpha = 0.5;
+                annotationCtx.globalCompositeOperation = 'source-over';
+                
+                if (currentTool === 'rectangle') {
+                    annotationCtx.strokeRect(startX, startY, x - startX, y - startY);
+                } else if (currentTool === 'circle') {
+                    const radius = Math.sqrt(Math.pow(x - startX, 2) + Math.pow(y - startY, 2));
+                    annotationCtx.beginPath();
+                    annotationCtx.arc(startX, startY, radius, 0, 2 * Math.PI);
+                    annotationCtx.stroke();
+                } else if (currentTool === 'arrow') {
+                    drawArrow(annotationCtx, startX, startY, x, y);
+                }
+            }
+            
+            lastX = x;
+            lastY = y;
+        }
+        
+        function clearAnnotations() {
+            if (confirm('Clear all annotations?')) {
+                annotationCtx.clearRect(0, 0, annotationCanvas.width, annotationCanvas.height);
+                showNotification('Annotations cleared!');
+            }
+        }
+        
+        function downloadAnnotatedImage() {
+            showNotification('Opening print dialog...');
+            
+            // Create a print-friendly version
+            const printWindow = window.open('', '_blank');
+            
+            if (!printWindow) {
+                showNotification('Please allow pop-ups to print the annotated document.');
+                return;
+            }
+            
+            const content = document.getElementById('annotationContent');
+            
+            // Create a temporary canvas with the annotations
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = annotationCanvas.width;
+            tempCanvas.height = annotationCanvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(annotationCanvas, 0, 0);
+            
+            // Convert canvas to data URL
+            const annotationsDataUrl = tempCanvas.toDataURL('image/png');
+            
+            // Create print document HTML
+            const printHTML = '<!DOCTYPE html>' +
+'<html>' +
+'<head>' +
+'    <title>Annotated Document - ' + new Date().toISOString().slice(0, 10) + '</title>' +
+'    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">' +
+'    <style>' +
+'        @media print {' +
+'            @page {' +
+'                margin: 20mm;' +
+'                size: A4;' +
+'            }' +
+'            body {' +
+'                margin: 0;' +
+'                padding: 0;' +
+'            }' +
+'        }' +
+'        body {' +
+'            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;' +
+'            line-height: 1.8;' +
+'            color: #2d3748;' +
+'            background: white;' +
+'            margin: 0;' +
+'            padding: 20px;' +
+'        }' +
+'        .annotation-layer {' +
+'            position: relative;' +
+'        }' +
+'        .annotation-overlay {' +
+'            position: absolute;' +
+'            top: 0;' +
+'            left: 0;' +
+'            width: 100%;' +
+'            height: 100%;' +
+'            pointer-events: none;' +
+'            z-index: 10;' +
+'        }' +
+'        h1 { font-size: 2.5em; font-weight: 800; margin-top: 30px; margin-bottom: 15px; border-bottom: 3px solid #667eea; padding-bottom: 10px; }' +
+'        h2 { font-size: 2em; font-weight: 700; }' +
+'        h3 { font-size: 1.5em; font-weight: 600; }' +
+'        code { background: #f7fafc; padding: 2px 6px; border-radius: 4px; font-family: monospace; }' +
+'        pre { background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 6px; overflow-x: auto; }' +
+'        pre code { background: none; padding: 0; }' +
+'        blockquote { border-left: 4px solid #667eea; padding-left: 15px; margin-left: 0; color: #4a5568; }' +
+'        a { color: #667eea; text-decoration: none; }' +
+'        table { border-collapse: collapse; width: 100%; margin-bottom: 15px; }' +
+'        table th { background: #667eea; color: white; padding: 12px; text-align: left; }' +
+'        table td { border: 1px solid #e2e8f0; padding: 10px 12px; }' +
+'        img { max-width: 100%; height: auto; border-radius: 8px; }' +
+'    </style>' +
+'</head>' +
+'<body>' +
+'    <div class="annotation-layer">' +
+        content.innerHTML +
+'        <img class="annotation-overlay" src="' + annotationsDataUrl + '" alt="Annotations">' +
+'    </div>' +
+'    <script>' +
+'        window.onload = function() {' +
+'            setTimeout(function() {' +
+'                window.print();' +
+'            }, 500);' +
+'        };' +
+'        window.onafterprint = function() {' +
+'            setTimeout(function() {' +
+'                window.close();' +
+'            }, 100);' +
+'        };' +
+'    <\/script>' +
+'</body>' +
+'</html>';
+            
+            printWindow.document.write(printHTML);
+            printWindow.document.close();
+            
+            showNotification('Print dialog opened! Save as PDF from the print options.');
+        }
+        
+        function closeAnnotationMode() {
+            const annotationMode = document.getElementById('annotationMode');
+            annotationMode.classList.remove('active');
+            
+            // Clear canvas
+            if (annotationCtx) {
+                annotationCtx.clearRect(0, 0, annotationCanvas.width, annotationCanvas.height);
+            }
+            
+            showNotification('Annotation mode closed');
+        }
+        
+        // ESC key to exit annotation mode
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const annotationMode = document.getElementById('annotationMode');
+                if (annotationMode.classList.contains('active')) {
+                    closeAnnotationMode();
+                }
             }
         });
         
