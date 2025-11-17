@@ -31,7 +31,7 @@ open index.html
 ## Preview
 
 <div align="center">
-  <img src="preview.png" alt="MarkTex Screenshot" width="800">
+  <img src="marktex.png" alt="MarkTex Screenshot" width="800">
 </div>
 
 ## Use Cases
