@@ -70,12 +70,6 @@ MarkTex supports custom CSS styling through the built-in CSS modal. Apply global
 }
 ```
 
-## Browser Support
-
-- Chrome/Edge (Chromium) — ✅ Fully Supported
-- Firefox — ✅ Fully Supported  
-- Safari — ✅ Fully Supported
-- Opera — ✅ Fully Supported
 
 ## Contributing
 
