@@ -8,12 +8,12 @@
 
 ##  Features
 
-- **Live Split-View** — Real-time markdown preview as you type
-- **LaTeX Math** — Full support for inline `$E=mc^2$` and display math blocks
-- **Custom Styling** — Add HTML/CSS for enhanced visual presentation
-- **Multi-Format Export** — Download as Markdown, HTML, or PDF
-- **Auto-Save** — Your work is saved automatically to local storage
-- **Quick Snippets** — Pre-built templates for common markdown patterns
+- **Live Split-View** :  Real-time markdown preview as you type
+- **LaTeX Math** :  Full support for inline `$E=mc^2$` and display math blocks
+- **Custom Styling** :  Add HTML/CSS for enhanced visual presentation
+- **Multi-Format Export** :  Download as Markdown, HTML, or PDF
+- **Auto-Save** :  Your work is saved automatically to local storage
+- **Quick Snippets** :  Pre-built templates for common markdown patterns
 
 ## Quick Start
 
@@ -36,17 +36,17 @@ open index.html
 
 ## Use Cases
 
-- **Academic Writing** — Write research papers with mathematical equations
-- **Technical Documentation** — Create formatted documentation with code blocks
-- **Note-Taking** — Quick markdown notes with live preview
-- **Blogging** — Draft blog posts with custom styling
+- **Academic Writing** :  Write research papers with mathematical equations
+- **Technical Documentation** :  Create formatted documentation with code blocks
+- **Note-Taking** :  Quick markdown notes with live preview
+- **Blogging** :  Draft blog posts with custom styling
 
 ## Technologies
 
-- [Marked.js](https://marked.js.org/) — Fast markdown parsing
-- [KaTeX](https://katex.org/) — Beautiful math typesetting
-- [Tailwind CSS](https://tailwindcss.com/) — Utility-first styling
-- [html2pdf.js](https://github.com/eKoopmans/html2pdf.js) — PDF export functionality
+- [Marked.js](https://marked.js.org/) :  Fast markdown parsing
+- [KaTeX](https://katex.org/) :  Beautiful math typesetting
+- [Tailwind CSS](https://tailwindcss.com/) :  Utility-first styling
+- [html2pdf.js](https://github.com/eKoopmans/html2pdf.js) :  PDF export functionality
 
 ## Keyboard Shortcuts
 
